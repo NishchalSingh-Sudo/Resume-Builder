@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" xintegrity="sha512-Fo3rlrZj/k7ujTnHg4CGR2D7kSs0xXgS30B6R2W0Yv8w4y41fD2N5q/t/fC2S30S7R6K7j4g6d/gL0s3k4g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            line-height: 1.5; /* Global line height for better readability */
+        }
+        /* Custom scrollbar styles for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        /* Base A4 size simulation for the resume preview. Specific styles will be overridden by design templates. */
+        #resume-preview-area {
+            width: 794px; /* Approx. 210mm at 96 DPI */
+            min-height: 1123px; /* Approx. 297mm at 96 DPI */
+            box-sizing: border-box; /* Include padding in the width/height */
+            margin: 0 auto; /* Center the A4 preview */
+            background-color: white; /* Ensure a white background for PDF */
+        }
+
+        /* Default styles for contact info items */
+        #resume-preview-area .contact-info-item {
+            display: inline-flex;
+            align-items: center;
+            margin-right: 1.25rem; /* Space between contact items */
+        }
+        #resume-preview-area .contact-info-item svg,
+        #resume-preview-area .contact-info-item i {
+            margin-right: 0.4rem;
+        }
+        #resume-preview-area a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div> <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <script type="text/babel">
+        // Main App component
+        const App = () => {
+          // Destructure useState from React to make it available
+          const { useState, useRef } = React; // Also get useRef for targeting elements for PDF
+
+          // State to hold all resume data
+          const [resumeData, setResumeData] = useState({
+            personal: {
+              name: '',
+              title: '',
+              email: '',
+              phone: '',
+              linkedin: '',
+              github: '',
+              website: '',
+            },
+            summary: '',
+            experience: [],
+            education: [],
+            certifications: [],
+            skills: {
+              technical: '',
+              soft: '',
+              frameworks: '',
+            },
+            projects: [],
+          });
+
+          // Pre-defined content templates
+          const contentTemplates = [
+            {
+                name: "Blank Template",
+                data: {
+                    personal: { name: '', title: '', email: '', phone: '', linkedin: '', github: '', website: '' },
+                    summary: '',
+                    experience: [],
+                    education: [],
+                    certifications: [],
+                    skills: { technical: '', soft: '', frameworks: '' },
+                    projects: [],
+                }
+            },
+            {
+                name: "Software Engineer Template",
+                data: {
+                    personal: {
+                        name: 'Jane Doe',
+                        title: 'Software Engineer',
+                        email: 'jane.doe@example.com',
+                        phone: '(123) 456-7890',
+                        linkedin: 'https://linkedin.com/in/janedoe',
+                        github: 'https://github.com/janedoe',
+                        website: 'https://janedoe.dev',
+                    },
+                    summary: 'Highly motivated software engineer with 5+ years of experience in developing scalable web applications using modern JavaScript frameworks. Passionate about clean code, robust testing, and continuous learning.',
+                    experience: [
+                        {
+                            title: 'Senior Software Engineer',
+                            company: 'Tech Solutions Inc.',
+                            location: 'San Francisco, CA',
+                            startDate: 'Jan 2022',
+                            endDate: 'Present',
+                            responsibilities: 'Led development of new microservices, Mentored junior engineers, Optimized database queries, Implemented CI/CD pipelines'
+                        },
+                        {
+                            title: 'Software Engineer',
+                            company: 'Innovate Corp.',
+                            location: 'Seattle, WA',
+                            startDate: 'Jul 2019',
+                            endDate: 'Dec 2021',
+                            responsibilities: 'Developed front-end components, Collaborated with UX/UI designers, Conducted code reviews, Participated in agile ceremonies'
+                        }
+                    ],
+                    education: [
+                        {
+                            degree: 'M.S. in Computer Science',
+                            university: 'State University',
+                            location: 'State City, ST',
+                            gradDate: 'May 2019',
+                            gpaHonors: 'GPA: 3.9/4.0, Magna Cum Laude'
+                        },
+                        {
+                            degree: 'B.S. in Computer Engineering',
+                            university: 'Local College',
+                            location: 'Local City, ST',
+                            gradDate: 'May 2017',
+                            gpaHonors: 'Dean\'s List'
+                        }
+                    ],
+                    certifications: [
+                        { name: 'AWS Certified Developer – Associate', issuer: 'Amazon Web Services', date: 'Mar 2023' },
+                        { name: 'Certified ScrumMaster', issuer: 'Scrum Alliance', date: 'Oct 2021' }
+                    ],
+                    skills: {
+                        technical: 'JavaScript, Python, Node.js, React, Angular, Vue.js, Docker, Kubernetes, AWS, SQL, NoSQL, Git',
+                        frameworks: 'React, Node.js, Express.js, Django, Flask',
+                        soft: 'Problem-solving, Teamwork, Communication, Leadership, Adaptability'
+                    },
+                    projects: [
+                        {
+                            name: 'E-commerce Platform Redesign',
+                            link: 'https://github.com/janedoe/ecommerce-redesign',
+                            description: 'Led the redesign of a high-traffic e-commerce platform resulting in a 20% increase in conversion rate, Implemented a new payment gateway integration, Improved page load times by 30%',
+                            technologies: 'React, Node.js, Express, MongoDB, Stripe API'
+                        },
+                        {
+                            name: 'Personal Portfolio Website',
+                            link: 'https://janedoe.dev',
+                            description: 'Developed and deployed a personal portfolio website to showcase projects and skills, Designed responsive UI for various devices, Integrated with GitHub API to display repositories dynamically',
+                            technologies: 'Vue.js, Tailwind CSS, Netlify'
+                        }
+                    ],
+                }
+            },
+            {
+                name: "Data Analyst Template",
+                data: {
+                    personal: {
+                        name: 'John Smith',
+                        title: 'Data Analyst',
+                        email: 'john.smith@example.com',
+                        phone: '(987) 654-3210',
+                        linkedin: 'https://linkedin.com/in/johnsmith',
+                        github: '',
+                        website: '',
+                    },
+                    summary: 'Detail-oriented Data Analyst with 3 years of experience in data manipulation, statistical analysis, and visualization to drive business insights. Proficient in SQL, Python, and Tableau.',
+                    experience: [
+                        {
+                            title: 'Data Analyst',
+                            company: 'Global Analytics Co.',
+                            location: 'New York, NY',
+                            startDate: 'Aug 2021',
+                            endDate: 'Present',
+                            responsibilities: 'Performed A/B testing analysis, Developed interactive dashboards, Cleaned and preprocessed large datasets, Presented findings to stakeholders'
+                        }
+                    ],
+                    education: [
+                        {
+                            degree: 'B.S. in Statistics',
+                            university: 'City University',
+                            location: 'City, NY',
+                            gradDate: 'May 2021',
+                            gpaHonors: 'GPA: 3.8/4.0'
+                        }
+                    ],
+                    certifications: [
+                        { name: 'Google Data Analytics Professional Certificate', issuer: 'Google', date: 'Jan 2022' }
+                    ],
+                    skills: {
+                        technical: 'SQL, Python (Pandas, NumPy, SciPy), R, Tableau, Power BI, Excel, Data Modeling, Statistical Analysis',
+                        frameworks: 'Pandas, NumPy, Matplotlib',
+                        soft: 'Analytical Thinking, Attention to Detail, Communication, Problem Solving'
+                    },
+                    projects: [
+                        {
+                            name: 'Customer Churn Prediction',
+                            link: '',
+                            description: 'Built a predictive model to identify customers at high risk of churn, Achieved 85% accuracy using machine learning algorithms, Provided actionable recommendations to marketing team',
+                            technologies: 'Python, Scikit-learn, Jupyter Notebook'
+                        }
+                    ],
+                }
+            }
+          ];
+
+          // Pre-defined design templates
+          const designTemplates = {
+            "Classic Professional": {
+                // Default styles, similar to what was there before
+                resumeAreaPadding: '36px',
+                nameFontSize: '2.2rem',
+                nameLetterSpacing: '0.05em',
+                nameColor: '#1F2937',
+                titleFontSize: '1.25rem',
+                titleColor: '#6B7280',
+                sectionTitleFontSize: '1.4rem',
+                sectionTitleFontWeight: '600',
+                sectionTitleColor: '#1F2937',
+                sectionTitleBorderBottom: '3px solid #3B82F6',
+                sectionTitlePaddingBottom: '0.25rem',
+                sectionTitleMarginBottom: '0.75rem',
+                jobDegreeTitleFontSize: '1.15rem',
+                jobDegreeTitleFontWeight: '600',
+                jobDegreeTitleColor: '#1F2937',
+                paragraphFontSize: '0.9rem',
+                bulletPointFontSize: '0.9rem',
+                bulletPointLineHeight: '1.4',
+                bulletPointsMarginLeft: '1rem',
+                smallTextFontSize: '0.8rem',
+                contactIconColor: '#4B5563',
+                linkColor: '#3B82F6',
+                linkHoverUnderline: 'underline',
+                lineHeightOverall: '1.5',
+            },
+            "Modern Minimalist": {
+                resumeAreaPadding: '40px',
+                nameFontSize: '2.5rem',
+                nameLetterSpacing: '0.02em',
+                nameColor: '#374151',
+                titleFontSize: '1.3rem',
+                titleColor: '#9CA3AF',
+                sectionTitleFontSize: '1.5rem',
+                sectionTitleFontWeight: '500', // Medium weight
+                sectionTitleColor: '#3B82F6', // Blue accent
+                sectionTitleBorderBottom: '1px solid #D1D5DB', // Lighter border
+                sectionTitlePaddingBottom: '0.5rem',
+                sectionTitleMarginBottom: '1rem',
+                jobDegreeTitleFontSize: '1.2rem',
+                jobDegreeTitleFontWeight: '600',
+                jobDegreeTitleColor: '#374151',
+                paragraphFontSize: '0.95rem',
+                bulletPointFontSize: '0.95rem',
+                bulletPointLineHeight: '1.6',
+                bulletPointsMarginLeft: '1.25rem',
+                smallTextFontSize: '0.85rem',
+                contactIconColor: '#6B7280',
+                linkColor: '#3B82F6',
+                linkHoverUnderline: 'none',
+                lineHeightOverall: '1.6',
+            },
+            "Bold & Clean": {
+                resumeAreaPadding: '32px',
+                nameFontSize: '2.8rem',
+                nameLetterSpacing: '0.08em',
+                nameColor: '#1F2937',
+                titleFontSize: '1.4rem',
+                titleColor: '#4B5563',
+                sectionTitleFontSize: '1.6rem',
+                sectionTitleFontWeight: '700', // Bold
+                sectionTitleColor: '#1F2937',
+                sectionTitleBorderBottom: '4px solid #EF4444', // Red accent
+                sectionTitlePaddingBottom: '0.35rem',
+                sectionTitleMarginBottom: '1rem',
+                jobDegreeTitleFontSize: '1.25rem',
+                jobDegreeTitleFontWeight: '700',
+                jobDegreeTitleColor: '#1F2937',
+                paragraphFontSize: '0.92rem',
+                bulletPointFontSize: '0.92rem',
+                bulletPointLineHeight: '1.55',
+                bulletPointsMarginLeft: '1.5rem',
+                smallTextFontSize: '0.8rem',
+                contactIconColor: '#EF4444',
+                linkColor: '#EF4444',
+                linkHoverUnderline: 'underline',
+                lineHeightOverall: '1.55',
+            }
+          };
+
+          const [selectedDesign, setSelectedDesign] = useState("Classic Professional"); // State for selected design
+
+          // Ref for the resume preview section to capture it for PDF
+          const resumePreviewRef = useRef();
+
+          // Helper function to update nested state
+          const handleChange = (section, field, value) => {
+            setResumeData(prevData => ({
+              ...prevData,
+              [section]: {
+                ...prevData[section],
+                [field]: value,
+              },
+            }));
+          };
+
+          // Helper function to update array state (experience, education, projects, certifications)
+          const handleArrayChange = (section, index, field, value) => {
+            setResumeData(prevData => {
+              const updatedArray = [...prevData[section]];
+              updatedArray[index] = {
+                ...updatedArray[index],
+                [field]: value,
+              };
+              return {
+                ...prevData,
+                [section]: updatedArray,
+              };
+            });
+          };
+
+          // Helper function to add a new item to an array section
+          const addItem = (section, newItem) => {
+            setResumeData(prevData => ({
+              ...prevData,
+              [section]: [...prevData[section], newItem],
+            }));
+          };
+
+          // Helper function to remove an item from an array section
+          const removeItem = (section, index) => {
+            setResumeData(prevData => ({
+              ...prevData,
+              [section]: prevData[section].filter((_, i) => i !== index),
+            }));
+          };
+
+          // Function to handle PDF download
+          const handleDownloadPdf = () => {
+            const input = resumePreviewRef.current;
+            if (!input) {
+                console.error("Resume preview element not found for PDF generation.");
+                return;
+            }
+
+            // Temporarily set overflow-y to hidden for a clean screenshot if it was scrollable
+            input.style.overflow = 'visible'; // Ensure all content is rendered for html2canvas
+            input.style.height = 'auto'; // Allow content to dictate height
+
+            html2canvas(input, {
+                scale: 2, // Increase scale for better resolution (e.g., 2 for 192 DPI)
+                useCORS: true, // Required if you have external images/fonts
+                windowWidth: input.scrollWidth, // Capture full width
+                windowHeight: input.scrollHeight // Capture full height
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const { jsPDF } = window.jspdf; // Access jspdf from window object
+                const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait, 'mm' for units, 'a4' for size
+
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+
+                // Calculate ratios to fit content within one page
+                const widthRatio = pdfWidth / imgWidth;
+                const heightRatio = pdfHeight / imgHeight;
+
+                // Use the smaller ratio to ensure the entire image fits within the page
+                const ratio = Math.min(widthRatio, heightRatio);
+
+                const scaledImgWidth = imgWidth * ratio;
+                const scaledImgHeight = imgHeight * ratio;
+
+                // Center the image on the page
+                const xOffset = (pdfWidth - scaledImgWidth) / 2;
+                const yOffset = (pdfHeight - scaledImgHeight) / 2;
+
+                pdf.addImage(imgData, 'PNG', xOffset, yOffset, scaledImgWidth, scaledImgHeight);
+
+                pdf.save("my-resume.pdf");
+
+                // Restore original styles after PDF generation
+                input.style.overflow = '';
+                input.style.height = '';
+
+            }).catch(error => {
+                console.error("Error generating PDF:", error);
+                alert("Failed to generate PDF. Check console for details.");
+                // Restore original styles on error too
+                input.style.overflow = '';
+                input.style.height = '';
+            });
+          };
+
+          // Function to handle template upload from file
+          const handleLoadTemplateFromFile = (event) => {
+            const file = event.target.files[0];
+            if (!file) {
+              return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              try {
+                const parsedData = JSON.parse(e.target.result);
+                // Simple validation: check if it has 'personal' property
+                if (parsedData && typeof parsedData.personal === 'object') {
+                  setResumeData(parsedData);
+                  alert("Resume content loaded successfully!");
+                } else {
+                  alert("Invalid JSON format. Please upload a JSON file matching the resume structure.");
+                }
+              } catch (error) {
+                console.error("Error parsing JSON:", error);
+                alert("Failed to load content template. Make sure it's a valid JSON file.");
+              }
+            };
+            reader.readAsText(file);
+          };
+
+          // Function to load a selected content template from the dropdown
+          const handleLoadContentTemplateFromSelection = (event) => {
+            const selectedTemplateName = event.target.value;
+            const selectedTemplate = contentTemplates.find(t => t.name === selectedTemplateName);
+            if (selectedTemplate) {
+                setResumeData(selectedTemplate.data);
+            } else if (selectedTemplateName === "Blank Template") {
+                // Special handling for blank template to clear all fields
+                setResumeData(contentTemplates[0].data); // Reset to blank
+            }
+          };
+
+          // Function to handle design template selection
+          const handleDesignSelection = (event) => {
+            setSelectedDesign(event.target.value);
+          };
+
+
+          return (
+            <div className="min-h-screen bg-gray-100 p-4 font-inter">
+              <h1 className="text-4xl font-bold text-center text-gray-800 mb-8 rounded-lg p-4 bg-white shadow-md">
+                Resume Builder
+              </h1>
+
+              <div className="flex flex-col lg:flex-row gap-8 max-w-7xl mx-auto">
+                {/* Input Form Section */}
+                <div className="lg:w-1/2 bg-white p-6 rounded-lg shadow-lg overflow-y-auto max-h-[calc(100vh-120px)]">
+                  <h2 className="text-2xl font-semibold text-gray-700 mb-4">Your Details</h2>
+
+                  {/* Template Load/Save Buttons */}
+                  <div className="mb-6 flex gap-4">
+                    <label className="block w-1/2">
+                        <span className="sr-only">Choose file</span>
+                        <input type="file" accept=".json" onChange={handleLoadTemplateFromFile}
+                               className="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-full file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-violet-50 file:text-blue-700
+                                hover:file:bg-violet-100" />
+                        <p className="text-xs text-gray-500 mt-1">Upload a JSON template</p>
+                    </label>
+                    <button
+                      onClick={handleDownloadPdf}
+                      className="w-1/2 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 transition-colors flex items-center justify-center"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      Download PDF
+                    </button>
+                  </div>
+
+                  {/* Content Template Selection Dropdown */}
+                  <div className="mb-6">
+                    <label htmlFor="content-template-select" className="block text-gray-700 text-sm font-bold mb-1">
+                        Choose Content Template:
+                    </label>
+                    <select
+                        id="content-template-select"
+                        onChange={handleLoadContentTemplateFromSelection}
+                        className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                        {contentTemplates.map((template, index) => (
+                            <option key={index} value={template.name}>{template.name}</option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Select a pre-defined content template to load data.</p>
+                  </div>
+
+                  {/* Design Template Selection Dropdown */}
+                  <div className="mb-6">
+                    <label htmlFor="design-template-select" className="block text-gray-700 text-sm font-bold mb-1">
+                        Choose a Design:
+                    </label>
+                    <select
+                        id="design-template-select"
+                        onChange={handleDesignSelection}
+                        value={selectedDesign}
+                        className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    >
+                        {Object.keys(designTemplates).map((designName, index) => (
+                            <option key={index} value={designName}>{designName}</option>
+                        ))}
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">Select a visual design for your resume.</p>
+                  </div>
+
+
+                  {/* Personal Information */}
+                  <Section title="Personal Information">
+                    <InputField label="Full Name" value={resumeData.personal.name} onChange={(e) => handleChange('personal', 'name', e.target.value)} />
+                    <InputField label="Desired Title" value={resumeData.personal.title} onChange={(e) => handleChange('personal', 'title', e.target.value)} />
+                    <InputField label="Email" type="email" value={resumeData.personal.email} onChange={(e) => handleChange('personal', 'email', e.target.value)} />
+                    <InputField label="Phone" type="tel" value={resumeData.personal.phone} onChange={(e) => handleChange('personal', 'phone', e.target.value)} />
+                    <InputField label="LinkedIn Profile" value={resumeData.personal.linkedin} onChange={(e) => handleChange('personal', 'linkedin', e.target.value)} />
+                    <InputField label="GitHub Profile" value={resumeData.personal.github} onChange={(e) => handleChange('personal', 'github', e.target.value)} />
+                    <InputField label="Personal Website" value={resumeData.personal.website} onChange={(e) => handleChange('personal', 'website', e.target.value)} />
+                  </Section>
+
+                  {/* Summary/Objective */}
+                  <Section title="Summary/Objective">
+                    <TextAreaField label="Summary" value={resumeData.summary} onChange={(e) => setResumeData(prevData => ({ ...prevData, summary: e.target.value }))} />
+                  </Section>
+
+                  {/* Work Experience */}
+                  <Section title="Work Experience">
+                    {resumeData.experience.map((exp, index) => (
+                      <div key={index} className="border border-gray-200 p-4 mb-4 rounded-md relative">
+                        <button
+                          onClick={() => removeItem('experience', index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors"
+                          title="Remove Experience"
+                        >
+                          &times;
+                        </button>
+                        <InputField label="Job Title" value={exp.title} onChange={(e) => handleArrayChange('experience', index, 'title', e.target.value)} />
+                        <InputField label="Company" value={exp.company} onChange={(e) => handleArrayChange('experience', index, 'company', e.target.value)} />
+                        <InputField label="Location" value={exp.location} onChange={(e) => handleArrayChange('experience', index, 'location', e.target.value)} />
+                        <InputField label="Start Date" value={exp.startDate} onChange={(e) => handleArrayChange('experience', index, 'startDate', e.target.value)} />
+                        <InputField label="End Date (or 'Present')" value={exp.endDate} onChange={(e) => handleArrayChange('experience', index, 'endDate', e.target.value)} />
+                        <TextAreaField label="Responsibilities (comma-separated)" value={exp.responsibilities} onChange={(e) => handleArrayChange('experience', index, 'responsibilities', e.target.value)} />
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addItem('experience', { title: '', company: '', location: '', startDate: '', endDate: '', responsibilities: '' })}
+                      className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors mt-2"
+                    >
+                      Add Experience
+                    </button>
+                  </Section>
+
+                  {/* Education */}
+                  <Section title="Education">
+                    {resumeData.education.map((edu, index) => (
+                      <div key={index} className="border border-gray-200 p-4 mb-4 rounded-md relative">
+                        <button
+                          onClick={() => removeItem('education', index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors"
+                          title="Remove Education"
+                        >
+                          &times;
+                        </button>
+                        <InputField label="Degree/Program" value={edu.degree} onChange={(e) => handleArrayChange('education', index, 'degree', e.target.value)} />
+                        <InputField label="University/Institution" value={edu.university} onChange={(e) => handleArrayChange('education', index, 'university', e.target.value)} />
+                        <InputField label="Location" value={edu.location} onChange={(e) => handleArrayChange('education', index, 'location', e.target.value)} />
+                        <InputField label="Graduation Date" value={edu.gradDate} onChange={(e) => handleArrayChange('education', index, 'gradDate', e.target.value)} />
+                        <InputField label="GPA/Honors" value={edu.gpaHonors} onChange={(e) => handleArrayChange('education', index, 'gpaHonors', e.target.value)} />
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addItem('education', { degree: '', university: '', location: '', gradDate: '', gpaHonors: '' })}
+                      className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors mt-2"
+                    >
+                      Add Education
+                    </button>
+                  </Section>
+
+                  {/* Certifications */}
+                  <Section title="Certifications">
+                    {resumeData.certifications.map((cert, index) => (
+                      <div key={index} className="border border-gray-200 p-4 mb-4 rounded-md relative">
+                        <button
+                          onClick={() => removeItem('certifications', index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors"
+                          title="Remove Certification"
+                        >
+                          &times;
+                        </button>
+                        <InputField label="Certification Name" value={cert.name} onChange={(e) => handleArrayChange('certifications', index, 'name', e.target.value)} />
+                        <InputField label="Issuing Body" value={cert.issuer} onChange={(e) => handleArrayChange('certifications', index, 'issuer', e.target.value)} />
+                        <InputField label="Date of Issuance" value={cert.date} onChange={(e) => handleArrayChange('certifications', index, 'date', e.target.value)} />
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addItem('certifications', { name: '', issuer: '', date: '' })}
+                      className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors mt-2"
+                    >
+                      Add Certification
+                    </button>
+                  </Section>
+
+                  {/* Skills */}
+                  <Section title="Skills">
+                    <TextAreaField label="Technical Skills (comma-separated)" value={resumeData.skills.technical} onChange={(e) => handleChange('skills', 'technical', e.target.value)} />
+                    <TextAreaField label="Frameworks (comma-separated)" value={resumeData.skills.frameworks} onChange={(e) => handleChange('skills', 'frameworks', e.target.value)} />
+                    <TextAreaField label="Soft Skills (comma-separated)" value={resumeData.skills.soft} onChange={(e) => handleChange('skills', 'soft', e.target.value)} />
+                  </Section>
+
+                  {/* Projects */}
+                  <Section title="Projects">
+                    {resumeData.projects.map((project, index) => (
+                      <div key={index} className="border border-gray-200 p-4 mb-4 rounded-md relative">
+                        <button
+                          onClick={() => removeItem('projects', index)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold hover:bg-red-600 transition-colors"
+                          title="Remove Project"
+                        >
+                          &times;
+                        </button>
+                        <InputField label="Project Name" value={project.name} onChange={(e) => handleArrayChange('projects', index, 'name', e.target.value)} />
+                        <InputField label="Project Link (Optional)" value={project.link} onChange={(e) => handleArrayChange('projects', index, 'link', e.target.value)} />
+                        <TextAreaField label="Description (comma-separated)" value={project.description} onChange={(e) => handleArrayChange('projects', index, 'description', e.target.value)} />
+                        <InputField label="Technologies Used (comma-separated)" value={project.technologies} onChange={(e) => handleArrayChange('projects', index, 'technologies', e.target.value)} />
+                      </div>
+                    ))}
+                    <button
+                      onClick={() => addItem('projects', { name: '', link: '', description: '', technologies: '' })}
+                      className="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors mt-2"
+                    >
+                      Add Project
+                    </button>
+                  </Section>
+                </div>
+
+                {/* Resume Preview Section */}
+                <div className="lg:w-1/2 bg-white p-6 rounded-lg shadow-lg overflow-y-auto max-h-[calc(100vh-120px)]">
+                  <h2 className="text-2xl font-semibold text-gray-700 mb-4">Resume Preview</h2>
+                  <div ref={resumePreviewRef} id="resume-preview-area" className="border border-gray-300 rounded-lg shadow-inner">
+                    <ResumePreview data={resumeData} designConfig={designTemplates[selectedDesign]} />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        };
+
+        // Reusable Section Component for form organization
+        const Section = ({ title, children }) => (
+          <div className="mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
+            <h3 className="text-xl font-semibold text-gray-800 mb-3">{title}</h3>
+            {children}
+          </div>
+        );
+
+        // Reusable Input Field Component
+        const InputField = ({ label, type = 'text', value, onChange }) => (
+          <div className="mb-3">
+            <label className="block text-gray-700 text-sm font-bold mb-1">{label}:</label>
+            <input
+              type={type}
+              value={value}
+              onChange={onChange}
+              className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400"
+            />
+          </div>
+        );
+
+        // Reusable Text Area Field Component
+        const TextAreaField = ({ label, value, onChange }) => (
+          <div className="mb-3">
+            <label className="block text-gray-700 text-sm font-bold mb-1">{label}:</label>
+            <textarea
+              value={value}
+              onChange={onChange}
+              rows="3"
+              className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 resize-y"
+            ></textarea>
+          </div>
+        );
+
+        // Resume Preview Component
+        const ResumePreview = ({ data, designConfig }) => {
+          const { personal, summary, experience, education, certifications, skills, projects } = data;
+
+          // Helper to render bullet points from comma-separated string
+          const renderBulletPoints = (text) => {
+            if (!text) return null;
+            const items = text.split(',').map(item => item.trim()).filter(item => item !== '');
+            if (items.length === 0) return null;
+            return (
+              <ul className="list-disc list-inside" style={{ marginLeft: designConfig.bulletPointsMarginLeft, fontSize: designConfig.bulletPointFontSize, lineHeight: designConfig.bulletPointLineHeight, color: '#4B5563' }}>
+                {items.map((item, index) => (
+                  <li key={index}>{item}</li>
+                ))}
+              </ul>
+            );
+          };
+
+          return (
+            <div style={{ padding: designConfig.resumeAreaPadding, lineHeight: designConfig.lineHeightOverall }}>
+              {/* Personal Information */}
+              <div className="text-center mb-6">
+                <h2 style={{ fontSize: designConfig.nameFontSize, letterSpacing: designConfig.nameLetterSpacing, color: designConfig.nameColor, marginBottom: '0.25rem' }}>{personal.name || 'Your Name'}</h2>
+                <p style={{ fontSize: designConfig.titleFontSize, color: designConfig.titleColor, marginBottom: '0.5rem' }}>{personal.title || 'Desired Title'}</p>
+                <div className="flex flex-wrap justify-center text-sm" style={{ color: designConfig.contactIconColor }}>
+                  {personal.email && <span className="contact-info-item"><i className="fas fa-envelope"></i> <a href={`mailto:${personal.email}`} style={{ color: designConfig.linkColor, textDecoration: designConfig.linkHoverUnderline === 'none' ? 'none' : 'initial' }}>{personal.email}</a></span>}
+                  {personal.phone && <span className="contact-info-item"><i className="fas fa-phone"></i> {personal.phone}</span>}
+                  {personal.linkedin && <span className="contact-info-item"><i className="fab fa-linkedin"></i> <a href={personal.linkedin} target="_blank" rel="noopener noreferrer" style={{ color: designConfig.linkColor, textDecoration: designConfig.linkHoverUnderline === 'none' ? 'none' : 'initial' }}>LinkedIn</a></span>}
+                  {personal.github && <span className="contact-info-item"><i className="fab fa-github"></i> <a href={personal.github} target="_blank" rel="noopener noreferrer" style={{ color: designConfig.linkColor, textDecoration: designConfig.linkHoverUnderline === 'none' ? 'none' : 'initial' }}>GitHub</a></span>}
+                  {personal.website && <span className="contact-info-item"><i className="fas fa-globe"></i> <a href={personal.website} target="_blank" rel="noopener noreferrer" style={{ color: designConfig.linkColor, textDecoration: designConfig.linkHoverUnderline === 'none' ? 'none' : 'initial' }}>Website</a></span>}
+                </div>
+              </div>
+
+              {/* Summary */}
+              {summary && (
+                <div className="mb-6">
+                  <h3 style={{ fontSize: designConfig.sectionTitleFontSize, fontWeight: designConfig.sectionTitleFontWeight, borderBottom: designConfig.sectionTitleBorderBottom, paddingBottom: designConfig.sectionTitlePaddingBottom, marginBottom: designConfig.sectionTitleMarginBottom, color: designConfig.sectionTitleColor }}>Summary</h3>
+                  <p style={{ fontSize: designConfig.paragraphFontSize, color: '#4B5563' }}>{summary}</p>
+                </div>
+              )}
+
+              {/* Work Experience */}
+              {experience.length > 0 && (
+                <div className="mb-6">
+                  <h3 style={{ fontSize: designConfig.sectionTitleFontSize, fontWeight: designConfig.sectionTitleFontWeight, borderBottom: designConfig.sectionTitleBorderBottom, paddingBottom: designConfig.sectionTitlePaddingBottom, marginBottom: designConfig.sectionTitleMarginBottom, color: designConfig.sectionTitleColor }}>Experience</h3>
+                  {experience.map((exp, index) => (
+                    <div key={index} className="mb-4">
+                      <div className="flex justify-between items-baseline">
+                        <h4 style={{ fontSize: designConfig.jobDegreeTitleFontSize, fontWeight: designConfig.jobDegreeTitleFontWeight, color: designConfig.jobDegreeTitleColor }}>{exp.title || 'Job Title'} at {exp.company || 'Company'}</h4>
+                        <p style={{ fontSize: designConfig.smallTextFontSize, color: '#6B7280' }}>{exp.startDate} - {exp.endDate}</p>
+                      </div>
+                      <p style={{ fontSize: designConfig.smallTextFontSize, color: '#6B7280', marginBottom: '0.25rem' }}>{exp.location}</p>
+                      {renderBulletPoints(exp.responsibilities)}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Education */}
+              {education.length > 0 && (
+                <div className="mb-6">
+                  <h3 style={{ fontSize: designConfig.sectionTitleFontSize, fontWeight: designConfig.sectionTitleFontWeight, borderBottom: designConfig.sectionTitleBorderBottom, paddingBottom: designConfig.sectionTitlePaddingBottom, marginBottom: designConfig.sectionTitleMarginBottom, color: designConfig.sectionTitleColor }}>Education</h3>
+                  {education.map((edu, index) => (
+                    <div key={index} className="mb-4">
+                      <div className="flex justify-between items-baseline">
+                        <h4 style={{ fontSize: designConfig.jobDegreeTitleFontSize, fontWeight: designConfig.jobDegreeTitleFontWeight, color: designConfig.jobDegreeTitleColor }}>{edu.degree || 'Degree'}</h4>
+                        <p style={{ fontSize: designConfig.smallTextFontSize, color: '#6B7280' }}>{edu.gradDate}</p>
+                      </div>
+                      <p style={{ fontSize: designConfig.paragraphFontSize, color: '#4B5563' }}>{edu.university || 'University'}</p>
+                      <p style={{ fontSize: designConfig.smallTextFontSize, color: '#6B7280' }}>{edu.location}</p>
+                      {edu.gpaHonors && <p style={{ fontSize: designConfig.smallTextFontSize, color: '#6B7280' }}>{edu.gpaHonors}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Certifications */}
+              {certifications.length > 0 && (
+                <div className="mb-6">
+                  <h3 style={{ fontSize: designConfig.sectionTitleFontSize, fontWeight: designConfig.sectionTitleFontWeight, borderBottom: designConfig.sectionTitleBorderBottom, paddingBottom: designConfig.sectionTitlePaddingBottom, marginBottom: designConfig.sectionTitleMarginBottom, color: designConfig.sectionTitleColor }}>Certifications</h3>
+                  {certifications.map((cert, index) => (
+                    <div key={index} className="mb-4">
+                      <div className="flex justify-between items-baseline">
+                        <h4 style={{ fontSize: designConfig.jobDegreeTitleFontSize, fontWeight: designConfig.jobDegreeTitleFontWeight, color: designConfig.jobDegreeTitleColor }}>{cert.name || 'Certification Name'}</h4>
+                        <p style={{ fontSize: designConfig.smallTextFontSize, color: '#6B7280' }}>{cert.date}</p>
+                      </div>
+                      <p style={{ fontSize: designConfig.smallTextFontSize, color: '#4B5563', marginBottom: '0.25rem' }}>{cert.issuer || 'Issuing Body'}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Skills */}
+              {(skills.technical || skills.frameworks || skills.soft) && (
+                <div className="mb-6">
+                  <h3 style={{ fontSize: designConfig.sectionTitleFontSize, fontWeight: designConfig.sectionTitleFontWeight, borderBottom: designConfig.sectionTitleBorderBottom, paddingBottom: designConfig.sectionTitlePaddingBottom, marginBottom: designConfig.sectionTitleMarginBottom, color: designConfig.sectionTitleColor }}>Skills</h3>
+                  {skills.technical && (
+                    <p style={{ fontSize: designConfig.paragraphFontSize, color: '#4B5563', marginBottom: '0.25rem' }}>
+                      <span className="font-semibold">Technical Skills:</span> {skills.technical}
+                    </p>
+                  )}
+                  {skills.frameworks && (
+                    <p style={{ fontSize: designConfig.paragraphFontSize, color: '#4B5563', marginBottom: '0.25rem' }}>
+                      <span className="font-semibold">Frameworks:</span> {skills.frameworks}
+                    </p>
+                  )}
+                  {skills.soft && (
+                    <p style={{ fontSize: designConfig.paragraphFontSize, color: '#4B5563' }}>
+                      <span className="font-semibold">Soft Skills:</span> {skills.soft}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Projects */}
+              {projects.length > 0 && (
+                <div className="mb-6">
+                  <h3 style={{ fontSize: designConfig.sectionTitleFontSize, fontWeight: designConfig.sectionTitleFontWeight, borderBottom: designConfig.sectionTitleBorderBottom, paddingBottom: designConfig.sectionTitlePaddingBottom, marginBottom: designConfig.sectionTitleMarginBottom, color: designConfig.sectionTitleColor }}>Projects</h3>
+                  {projects.map((project, index) => (
+                    <div key={index} className="mb-4">
+                      <h4 style={{ fontSize: designConfig.jobDegreeTitleFontSize, fontWeight: designConfig.jobDegreeTitleFontWeight, color: designConfig.jobDegreeTitleColor }}>
+                        {project.name || 'Project Name'}
+                        {project.link && (
+                          <a href={project.link} target="_blank" rel="noopener noreferrer" className="ml-2" style={{ color: designConfig.linkColor, textDecoration: designConfig.linkHoverUnderline === 'none' ? 'none' : 'initial', fontSize: designConfig.smallTextFontSize }}>
+                            (Link)
+                          </a>
+                        )}
+                      </h4>
+                      {renderBulletPoints(project.description)}
+                      {project.technologies && (
+                        <p style={{ fontSize: designConfig.smallTextFontSize, color: '#6B7280', marginTop: '0.25rem' }}>
+                          <span className="font-semibold">Technologies:</span> {project.technologies}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        // CAPTCHA Component
+        const CaptchaScreen = ({ onCaptchaSuccess }) => {
+            const { useState, useEffect } = React; // Destructure useState and useEffect here
+            const [num1, setNum1] = useState(0);
+            const [num2, setNum2] = useState(0);
+            const [answer, setAnswer] = useState('');
+            const [error, setError] = useState('');
+
+            // Generate new CAPTCHA numbers on component mount
+            useEffect(() => {
+                generateCaptcha();
+            }, []);
+
+            const generateCaptcha = () => {
+                const n1 = Math.floor(Math.random() * 10) + 1; // 1-10
+                const n2 = Math.floor(Math.random() * 10) + 1; // 1-10
+                setNum1(n1);
+                setNum2(n2);
+                setAnswer('');
+                setError('');
+            };
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (parseInt(answer) === (num1 + num2)) {
+                    onCaptchaSuccess();
+                } else {
+                    setError('Incorrect CAPTCHA. Please try again.');
+                    generateCaptcha(); // Regenerate CAPTCHA on failure
+                }
+            };
+
+            return (
+                <div className="flex items-center justify-center min-h-screen bg-gray-100">
+                    <div className="bg-white p-8 rounded-lg shadow-lg text-center">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-4">Security Check</h2>
+                        <p className="text-gray-700 mb-6">Please solve the CAPTCHA to proceed:</p>
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-4">
+                                <span className="text-3xl font-bold text-blue-600">{num1} + {num2} = ?</span>
+                            </div>
+                            <input
+                                type="number"
+                                value={answer}
+                                onChange={(e) => setAnswer(e.target.value)}
+                                className="shadow appearance-none border rounded-md w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-blue-400 text-center text-lg"
+                                placeholder="Your answer"
+                                required
+                            />
+                            {error && <p className="text-red-500 text-sm mt-2">{error}</p>}
+                            <button
+                                type="submit"
+                                className="mt-6 w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors"
+                            >
+                                Verify CAPTCHA
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // Root component to handle conditional rendering
+        const RootComponent = () => {
+            const { useState } = React; // Destructure useState here
+            const [captchaSolved, setCaptchaSolved] = useState(false);
+
+            const handleCaptchaSuccess = () => {
+                setCaptchaSolved(true);
+            };
+
+            return captchaSolved ? <App /> : <CaptchaScreen onCaptchaSuccess={handleCaptchaSuccess} />;
+        };
+
+        // Get the root element from the HTML
+        const rootElement = document.getElementById('root');
+        // Create a React root and render the RootComponent into it
+        ReactDOM.createRoot(rootElement).render(<RootComponent />);
+    </script>
+</body>
+</html>
