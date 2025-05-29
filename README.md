@@ -61,3 +61,5 @@ These templates provide pre-filled data for various sections of your resume, all
 
 Design Templates
 These templates control the visual styling of your resume, including fonts, colors, spacing, and section borders. You can switch between them to find a look that suits you.
+
+You can access the Resume Builder from here - http://localhost:8000/Resume%20Builder%208.html
