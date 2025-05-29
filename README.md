@@ -61,9 +61,3 @@ These templates provide pre-filled data for various sections of your resume, all
 
 Design Templates
 These templates control the visual styling of your resume, including fonts, colors, spacing, and section borders. You can switch between them to find a look that suits you.
-
-🤝 Contributing
-Contributions, issues, and feature requests are welcome! Feel free to check the issues page or create a new issue.
-
-📄 License
-This project is open-source and available under the MIT License.
